@@ -5,6 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "docling>=1.20.0",
     "langchain>=0.3.7",
+    "pdfminer-six[image]>=20240706",
 ]

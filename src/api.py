@@ -1,6 +1,11 @@
+from multiprocessing.pool import ThreadPool
+import json
+import copy
+
 import os
 import tqdm
 
+from flask import jsonify, make_response
 from flask import Flask, request
 from flask_restx import Resource, Api
 
@@ -39,35 +44,36 @@ class GenCourse(Resource):
         num_sections = sum(len(chapter_sections) for _, chapter_sections in outlines) + len(outlines)
 
         outlines = tqdm.tqdm(outlines, total=num_sections, desc="Generating course")
+
+        def gen_problems(section):
+            title, body = section
+            return (title, generate_problems(body, 6, 2).model_dump())
         
-        for chapter_title, chapter_sections in outlines:
-            chapter = {}
-            chapter["chapter_title"] = chapter_title
-            chapter["sections"] = []
+        with ThreadPool(processes=100) as pool:
+            for chapter_title, chapter_sections in outlines:
+                chapter = {}
+                chapter["chapter_title"] = chapter_title
+                chapter["sections"] = []
 
-            for section_title, section_body in chapter_sections:
-                section = {}
-                section["section_title"] = section_title
+                for section_title, problemset in pool.map(gen_problems, chapter_sections):
+                    section = {}
+                    section["section_title"] = section_title
 
-                problemset: ProblemSet = generate_problems(section_body, 6, 2)
-                problemset = problemset.model_dump()
+                    section["mcqs"] = problemset["mcqs"]
+                    section["frqs"] = problemset["frqs"]
 
-                section["mcqs"] = problemset["mcqs"]
-                section["frqs"] = problemset["frqs"]
+                    chapter["sections"].append(section)
 
-                chapter["sections"].append(section)
+                    outlines.update(1)
 
-                outlines.update(1)
+                outlines.set_postfix_str(chapter_title)
 
-            outlines.set_postfix_str(chapter_title)
-
-            course["chapters"].append(chapter)
-
+                course["chapters"].append(chapter)
+        # print(course)
         outlines.close()
 
-        client.get_database("TextbookTutor").get_collection("Courses").insert_one(course)
-
-        return {"message": "Course generated successfully", "course": course}, 200
+        client.get_database("TextbookTutor").get_collection("Courses").insert_one(copy.copy(course))
+        return {"message": "Course generated successfully", "course": course}
 
 if __name__ == '__main__':
     client = MongoClient(os.getenv("MONGODB_URI"), server_api=ServerApi('1'))

@@ -24,8 +24,11 @@ class GenCourse(Resource):
     def post(self):
         if 'file' not in request.files:
             return {"message": "No file part in the request"}, 400
+        
 
         uploaded_file = request.files['file']
+        userid = request.form.get('userid', default="", type=str)
+        
 
         if uploaded_file.filename == '':
             return {"message": "No selected file"}, 400
@@ -38,6 +41,7 @@ class GenCourse(Resource):
 
         course = {}
 
+        course["userid"] = userid
         course["course_title"] = uploaded_file.filename.split(".")[0]
         course["chapters"] = []
 

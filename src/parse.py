@@ -1,3 +1,6 @@
+from pypdf import PdfReader
+from pdfminer.high_level import extract_text
+
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Optional
@@ -99,7 +102,29 @@ class RefPageNumberResolver:
 
         return None  # PDFRefType.UNK
 
-def parse_outlines(file: str) -> dict[int, int]:
+def m(body, start, title):
+    i = start
+    j = 0
+    while j < len(title) and title[j] == ' ':
+        j += 1
+    while j < len(title):
+        if i >= len(body):
+            return None
+        c = body[i]
+        if c == '\n' or c == ' ':
+            i += 1
+        elif c == title[j]:
+            i += 1
+            j += 1
+        else:
+            return None
+        while j < len(title) and title[j] == ' ':
+            j += 1
+    if i == len(body) or body[i] == '\n':
+        return i
+    return None
+
+def parse_outlines(file: str):
     """Pretty print the outlines (ToC) of a PDF document."""
     with open(file, "rb") as fp:
         try:
@@ -123,7 +148,9 @@ def parse_outlines(file: str) -> dict[int, int]:
                 else:
                     page_num = None
                 prev[-1][-1] = page_num
-                prev.append([level, title, page_num, -1])
+                prev.append([title, level, page_num, -1])
+            prev[-1][-1] = len(ref_pagenum_resolver.objid_to_pagenum) - 1
+            print(prev)
         except PDFNoOutlines:
             print("No outlines found.")
         except PDFSyntaxError:
@@ -133,7 +160,59 @@ def parse_outlines(file: str) -> dict[int, int]:
                 parser.close()
             except NameError:
                 pass  # nothing to do
-    print(prev)
+        
+
+        reader = PdfReader(file)
+        r = []
+        for i in range(len(prev)):
+            title, level, start, end = prev[i]
+            print(level)
+            # print("-----")
+            # if "IV Adv" in title:
+            #     print("ahh")
+            #     print(text)
+            text = "\n\n".join(page.extract_text() for page in reader.pages[start - 1: end - 1 + 1])
+            for j in range(len(text)):
+                ahh = m(text, j, title)
+                if ahh is not None:
+                    text = text[ahh:]
+                    break
+            if i + 1 < len(prev):
+                title2, _, _, _ = prev[i + 1]
+                for j in reversed(range(len(text))):
+                    ahh = m(text, j, title2)
+                    if ahh is not None:
+                        text = text[:j]
+                        break
+            if level <= 1:
+                r.append((title, []))
+                if len(text.replace(" ", "").replace("\n", "")) > 20:
+                    r[-1][1].append(("Introduction", text))
+            else:
+                r[-1][1].append((title, text))
+        # for chapter, sections in r:
+        #     print('--------')
+        #     print(chapter)
+        #     for title, body in sections:
+        #         print('-#----')
+        #         print(title)
+        #         print(body[:100])
+        #         print('-@-')
+        #         print(body[-100:])
+
+        r.pop(0)
+
+        return r
+            
+            # print(title)
+            # print(start)
+            # print(end)
+            # print("---")
+            # print(text[:100])
+            # print("-@-")
+            # print(text[-100:])
+
+   
 
 def print_outlines(file: str) -> dict[int, int]:
     """Pretty print the outlines (ToC) of a PDF document."""
@@ -179,8 +258,20 @@ def print_outlines(file: str) -> dict[int, int]:
 
 
 def main():
+    # "/home/ben/Downloads/Algorithms.pdf"
+    # /Randal E. Bryant, David R. O'Hallaron - Computer Systems_ A Programmer's Perspective, 2nd Edition (2010, Addison Wesley).pdf
     file_name = Path("/home/ben/Downloads/Randal E. Bryant, David R. O'Hallaron - Computer Systems_ A Programmer's Perspective, 2nd Edition (2010, Addison Wesley).pdf")
     parse_outlines(file_name)
+
+    # reader = PdfReader("/home/ben/Downloads/Randal E. Bryant, David R. O'Hallaron - Computer Systems_ A Programmer's Perspective, 2nd Edition (2010, Addison Wesley).pdf")
+    # page = reader.pages[37]
+    # print(page.extract_text())
+    # text = extract_text(file_name, page_numbers = range(38, 39))
+    # print(text)
+
+    # print('---')
+    # print(m(" Bruh\nYeet\nTheIndustrialRev", 0, "Bruh Yeet"))
+
 
 
 if __name__ == "__main__":

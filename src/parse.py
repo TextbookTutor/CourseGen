@@ -150,7 +150,6 @@ def parse_outlines(file: str):
                 prev[-1][-1] = page_num
                 prev.append([title, level, page_num, -1])
             prev[-1][-1] = len(ref_pagenum_resolver.objid_to_pagenum) - 1
-            print(prev)
         except PDFNoOutlines:
             print("No outlines found.")
         except PDFSyntaxError:
@@ -166,7 +165,6 @@ def parse_outlines(file: str):
         r = []
         for i in range(len(prev)):
             title, level, start, end = prev[i]
-            print(level)
             # print("-----")
             # if "IV Adv" in title:
             #     print("ahh")

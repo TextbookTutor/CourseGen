@@ -1,6 +1,8 @@
+import os
+import tqdm
+
 from flask import Flask, request
 from flask_restx import Resource, Api
-import os
 
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
@@ -27,11 +29,17 @@ class GenCourse(Resource):
 
         outlines = parse_outlines("temp.pdf")
 
+        print("Parsed outlines")
+
         course = {}
 
-        course["course_title"] = uploaded_file.filename
+        course["course_title"] = uploaded_file.filename.split(".")[0]
         course["chapters"] = []
 
+        num_sections = sum(len(chapter_sections) for _, chapter_sections in outlines) + len(outlines)
+
+        outlines = tqdm.tqdm(outlines, total=num_sections, desc="Generating course")
+        
         for chapter_title, chapter_sections in outlines:
             chapter = {}
             chapter["chapter_title"] = chapter_title
@@ -48,12 +56,18 @@ class GenCourse(Resource):
                 section["frqs"] = problemset["frqs"]
 
                 chapter["sections"].append(section)
-            
-            course["chapters"].append(chapter)
-        
-        
 
-        return {"message": f"File '{uploaded_file.filename}' received successfully"}, 200
+                outlines.update(1)
+
+            outlines.set_postfix_str(chapter_title)
+
+            course["chapters"].append(chapter)
+
+        outlines.close()
+
+        client.get_database("TextbookTutor").get_collection("Courses").insert_one(course)
+
+        return {"message": "Course generated successfully", "course": course}, 200
 
 if __name__ == '__main__':
     client = MongoClient(os.getenv("MONGODB_URI"), server_api=ServerApi('1'))

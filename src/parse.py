@@ -260,7 +260,7 @@ def print_outlines(file: str) -> dict[int, int]:
 def main():
     # "/home/ben/Downloads/Algorithms.pdf"
     # /Randal E. Bryant, David R. O'Hallaron - Computer Systems_ A Programmer's Perspective, 2nd Edition (2010, Addison Wesley).pdf
-    file_name = Path("/home/ben/Downloads/Randal E. Bryant, David R. O'Hallaron - Computer Systems_ A Programmer's Perspective, 2nd Edition (2010, Addison Wesley).pdf")
+    file_name = Path("/home/ben/Downloads/ods-python.pdf")
     parse_outlines(file_name)
 
     # reader = PdfReader("/home/ben/Downloads/Randal E. Bryant, David R. O'Hallaron - Computer Systems_ A Programmer's Perspective, 2nd Edition (2010, Addison Wesley).pdf")

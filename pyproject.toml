@@ -12,6 +12,9 @@ dependencies = [
     "pdfminer-six[image]>=20240706",
     "pydantic>=2.9.2",
     "pymongo[srv]>=4.10.1",
-    "pypdf>=5.1.0",
+    "pypdf",
     "python-dotenv>=1.0.1",
 ]
+
+[tool.uv.sources]
+pypdf = { git = "https://github.com/py-pdf/pypdf" }
